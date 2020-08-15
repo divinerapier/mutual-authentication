@@ -3,28 +3,30 @@ package main
 import (
 	"crypto/tls"
 	"crypto/x509"
+	"flag"
 	"fmt"
 	"io/ioutil"
 	"net/http"
-	"os"
-	"strings"
 )
 
 func main() {
+	var host, capath, certpath, keypath string
+	flag.StringVar(&capath, "ca", "", "path of ca file")
+	flag.StringVar(&certpath, "cert", "", "path of cert file")
+	flag.StringVar(&keypath, "key", "", "path of key file")
+	flag.StringVar(&host, "host", "", "host of https server")
+	flag.Parse()
+
 	pool := x509.NewCertPool()
-	caCertPath := "root.crt"
 
-	u := os.Args[1]
-	payload := os.Args[2]
-
-	caCrt, err := ioutil.ReadFile(caCertPath)
+	caCrt, err := ioutil.ReadFile(capath)
 	if err != nil {
 		fmt.Println("ReadFile err:", err)
 		return
 	}
 	pool.AppendCertsFromPEM(caCrt)
 
-	cliCrt, err := tls.LoadX509KeyPair("client.crt", "client.key")
+	cliCrt, err := tls.LoadX509KeyPair(certpath, keypath)
 	if err != nil {
 		fmt.Println("Loadx509keypair err:", err)
 		return
@@ -37,7 +39,7 @@ func main() {
 		},
 	}
 	client := &http.Client{Transport: tr}
-	resp, err := client.Post(u, "application/json", strings.NewReader(payload))
+	resp, err := client.Get(host)
 	if err != nil {
 		panic(err)
 	}
@@ -46,5 +48,5 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	fmt.Println(string(body))
+	fmt.Println(string(body) + "\n")
 }
